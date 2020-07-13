@@ -1,0 +1,177 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "(SA0019) - aws-fleet-predictive-maintenance
+  Predictive Maintenance for Fleets of Vehicles.
+  Version 1"
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      -
+        Label:
+          default: "Solution Configuration"
+        Parameters:
+          - S3BucketName
+      -
+        Label:
+          default: "Advanced Configuration"
+        Parameters:
+          - SageMakerNotebookInstanceType
+
+    ParameterLabels:
+      S3BucketName:
+        default: "S3 bucket to be created for the solution."
+      SageMakerNotebookInstanceType:
+        default: "SageMaker Notebook Instance Type"
+Parameters:
+  S3BucketName:
+    Description: Amazon S3 Bucket used to store datasets and models.
+    Type: String
+  SageMakerNotebookInstanceType:
+    Description: SageMaker notebook instance type.
+    Type: String
+    Default: "ml.t3.medium"
+Resources:
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: "Retain"
+    Properties:
+      BucketName: !Sub "${S3BucketName}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          -
+            ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W35
+            reason: Avoids user having to manually create an Amazon S3 bucket for logs.
+          - id: W51
+            reason: Current default access policy is sufficient.
+  SageMakerIAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+              - sagemaker.amazonaws.com
+            Action:
+            - 'sts:AssumeRole'
+  SageMakerIAMPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub "${AWS::StackName}-sagemaker-policy"
+      Roles:
+        - !Ref SageMakerIAMRole
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - sagemaker:CreateTrainingJob
+          - sagemaker:DescribeTrainingJob
+          - sagemaker:CreateProcessingJob
+          - sagemaker:DescribeProcessingJob
+          - sagemaker:CreateModel
+          - sagemaker:CreateHyperParameterTuningJob
+          - sagemaker:ListTrainingJobsForHyperParameterTuningJob
+          - sagemaker:DescribeEndpointConfig
+          - sagemaker:DescribeEndpoint
+          - sagemaker:CreateEndpointConfig
+          - sagemaker:CreateEndpoint
+          - sagemaker:DeleteEndpointConfig
+          - sagemaker:DeleteEndpoint
+          - sagemaker:DeleteModel
+          - sagemaker:InvokeEndpoint
+          Resource:
+          - !Sub "arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:*"
+        - Effect: Allow
+          Action:
+          - cloudwatch:GetMetricData
+          - cloudwatch:GetMetricStatistics
+          - cloudwatch:ListMetrics
+          Resource:
+          - !Sub "arn:aws:cloudwatch:${AWS::Region}:${AWS::AccountId}:*"
+        - Effect: Allow
+          Action:
+          - logs:CreateLogGroup
+          - logs:CreateLogStream
+          - logs:DescribeLogStreams
+          - logs:GetLogEvents
+          - logs:PutLogEvents
+          Resource:
+          - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/sagemaker/*"
+        - Effect: Allow
+          Action:
+          - iam:PassRole
+          Resource:
+          - !GetAtt SageMakerIAMRole.Arn
+          Condition:
+            StringEquals:
+              iam:PassedToService: sagemaker.amazonaws.com
+        - Effect: Allow
+          Action:
+          - iam:GetRole
+          Resource:
+          - !GetAtt SageMakerIAMRole.Arn
+        - Effect: Allow
+          Action:
+          - s3:CreateBucket
+          - s3:ListBucket
+          - s3:GetObject
+          - s3:PutObject
+          - s3:DeleteObject
+          Resource:
+          - !Sub "arn:aws:s3:::${S3BucketName}"
+          - !Sub "arn:aws:s3:::${S3BucketName}/*"
+
+  NotebookInstance:
+    Type: AWS::SageMaker::NotebookInstance
+    Properties:
+      DirectInternetAccess: Enabled
+      InstanceType: !Ref SageMakerNotebookInstanceType
+      LifecycleConfigName: !GetAtt LifeCycleConfig.NotebookInstanceLifecycleConfigName
+      NotebookInstanceName: aws-fleet-predictive-maintenance
+      RoleArn: !GetAtt SageMakerIAMRole.Arn
+      VolumeSizeInGB: 500
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W1201
+            reason: Solution does not have KMS encryption enabled by default
+  LifeCycleConfig:
+    Type: AWS::SageMaker::NotebookInstanceLifecycleConfig
+    Properties:
+      OnCreate:
+        - Content:
+            Fn::Base64: !Sub |
+              set -e
+              # Perform following actions as ec2-user.
+              sudo -u ec2-user -i <<EOF
+              cd /home/ec2-user/SageMaker
+              # Copy source files.
+              aws s3 cp s3://sagemaker-solutions-${AWS::Region}/aws-fleet-predictive-maintenance/sagemaker/ . --recursive
+              # Set useful solution specific variables via config file.
+              echo -e "\n" >> config/config.yaml
+              echo "# AWS and solution specific configurations" >> config/config.yaml
+              echo "AWS_ACCOUNT_ID: ${AWS::AccountId}" >> config/config.yaml
+              echo "AWS_REGION: ${AWS::Region}" >> config/config.yaml
+              echo "S3_BUCKET: ${S3BucketName}" >> config/config.yaml
+              EOF
+
+Outputs:
+  NotebookInstanceId:
+    Description: "SageMaker Notebook instance id"
+    Value: !Ref NotebookInstance
+
+  SageMakerNotebookInstanceSignOn:
+    Description: URL to notebooks on the Amazon SageMaker Notebook Instance.
+    Value: !Sub "https://console.aws.amazon.com/sagemaker/home?region=${AWS::Region}#/notebook-instances/openNotebook/${NotebookInstance.NotebookInstanceName}?view=classic"

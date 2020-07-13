@@ -1,0 +1,34 @@
+# Configuration options for Fleet Predict
+# Please adjust input file locations and column names along with period_ms to get started.
+
+## Basic Options ##
+
+# Locations and key column names for input content.
+fleet_info_fn: "data/example_fleet_info.csv"
+fleet_sensor_logs_fn: "data/example_fleet_sensor_logs.csv"
+vehicle_id_column: "vehicle_id"
+timestamp_column: "timestamp"
+target_column: "target"
+
+# Period of data in milliseconds. If data is not sampled with this period, processing will fail.
+period_ms: 30000
+
+
+## Advanced options ##
+
+# The number of examples to use in the train/test dataset.
+dataset_size: 10000
+
+# Predictions will depend on history. This is the 'window length', i.e. how far back we will look, including the current
+# event.
+window_length: 20
+
+# Parameters for processing large files.
+chunksize: 10000
+processing_chunksize: 1000
+
+# Locations and column names for generated content.
+fleet_dataset_fn: "data/processed/fleet_dataset.csv"
+train_dataset_fn: "data/processed/train_dataset.csv"
+test_dataset_fn: "data/processed/test_dataset.csv"
+period_column: "period_ms"
