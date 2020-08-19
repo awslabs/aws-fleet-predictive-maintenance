@@ -35,7 +35,7 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: "Retain"
     Properties:
-      BucketName: !Sub "${S3BucketName}"
+      BucketName: !Sub "sagemaker-solutions-${S3BucketName}"
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -167,7 +167,7 @@ Resources:
               echo "# AWS and solution specific configurations" >> config/config.yaml
               echo "AWS_ACCOUNT_ID: ${AWS::AccountId}" >> config/config.yaml
               echo "AWS_REGION: ${AWS::Region}" >> config/config.yaml
-              echo "S3_BUCKET: ${S3BucketName}" >> config/config.yaml
+              echo "S3_BUCKET: sagemaker-solutions-${S3BucketName}" >> config/config.yaml
               EOF
 
 Outputs:
