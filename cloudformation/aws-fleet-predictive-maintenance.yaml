@@ -91,6 +91,7 @@ Resources:
           - sagemaker:DeleteEndpoint
           - sagemaker:DeleteModel
           - sagemaker:InvokeEndpoint
+          - sagemaker:DescribeHyperParameterTuningJob
           Resource:
           - !Sub "arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:*"
         - Effect: Allow
