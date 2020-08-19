@@ -132,6 +132,8 @@ Resources:
           Resource:
           - !Sub "arn:aws:s3:::${S3BucketName}"
           - !Sub "arn:aws:s3:::${S3BucketName}/*"
+          - !Sub "arn:aws:s3:::sagemaker-solutions*"
+          - !Sub "arn:aws:s3:::sagemaker-solutions*/*"
 
   NotebookInstance:
     Type: AWS::SageMaker::NotebookInstance
