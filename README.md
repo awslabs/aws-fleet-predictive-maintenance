@@ -1,6 +1,6 @@
-## AWS Predictive Maintenance for Fleets
+## AWS Predictive Maintenance for Automotive Fleets
 
-The AWS predictive maintenance solution for vehicle fleets (i.e., fleet predict) applies deep learning techniques to common areas that drive vehicle failures, unplanned downtime and repair costs. It serves as an initial building block for you to get to a proof-of-concept in a short period of time. This solution contains data preparation and visualization functionaility within Amazon SageMaker and allows you to train and optimize the hyperparameters of deep learning models for your dataset. You can use your own data or try the solution with a synthetic data set as part of this solution. This version processes vehicle sensor data over time. A subsequent version will process maintenance record data.
+The AWS predictive maintenance solution for automotive fleets applies deep learning techniques to common areas that drive vehicle failures, unplanned downtime and repair costs. It serves as an initial building block for you to get to a proof-of-concept in a short period of time. This solution contains data preparation and visualization functionaility within Amazon SageMaker and allows you to train and optimize the hyperparameters of deep learning models for your dataset. You can use your own data or try the solution with a synthetic data set as part of this solution. This version processes vehicle sensor data over time. A subsequent version will process maintenance record data.
 
 ## Requirements
 
