@@ -10,6 +10,7 @@ Metadata:
           default: "Solution Configuration"
         Parameters:
           - S3BucketName
+          - SolutionPrefix
       -
         Label:
           default: "Advanced Configuration"
@@ -18,10 +19,24 @@ Metadata:
 
     ParameterLabels:
       S3BucketName:
-        default: "S3 bucket to be created for the solution."
+        default: "S3 bucket to be created for the solution. Note: Bucket name will be prefixed with sm-soln-"
+      SolutionPrefix:
+        default: "Solution Resources Name Prefix"
       SageMakerNotebookInstanceType:
         default: "SageMaker Notebook Instance Type"
 Parameters:
+  SolutionPrefix:
+    Type: String
+    Default: "sm-soln-fleet-predict"
+    Description: |
+      Used to name resources created as part of this stack (and inside nested stacks too).
+      Can be the same as the stack name used by AWS CloudFormation, but this field has extra
+      constraints because it's used to name resources with restrictions (e.g. Amazon S3 bucket
+      names cannot contain capital letters).
+    AllowedPattern: '^sm-soln-fleet-predict[a-z0-9\-]{0,20}$'
+    ConstraintDescription: |
+      Only allowed to use lowercase letters, hyphens and/or numbers.
+      Should also start with 'sm-soln-fleet-predict' for permission management.
   S3BucketName:
     Description: Amazon S3 Bucket used to store datasets and models.
     Type: String
@@ -35,7 +50,7 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: "Retain"
     Properties:
-      BucketName: !Sub "sagemaker-solutions-${S3BucketName}"
+      BucketName: !Sub "${SolutionPrefix}-${S3BucketName}"
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -56,6 +71,7 @@ Resources:
   SageMakerIAMRole:
     Type: AWS::IAM::Role
     Properties:
+      RoleName: !Sub "${SolutionPrefix}-${AWS::Region}-nb-role"
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -68,7 +84,7 @@ Resources:
   SageMakerIAMPolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: !Sub "${AWS::StackName}-sagemaker-policy"
+      PolicyName: !Sub "${SolutionPrefix}-nb-instance-policy"
       Roles:
         - !Ref SageMakerIAMRole
       PolicyDocument:
@@ -109,7 +125,7 @@ Resources:
           - logs:GetLogEvents
           - logs:PutLogEvents
           Resource:
-          - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/sagemaker/*"
+          - !Sub "arn:aws:logs:${SolutionPrefix}:${AWS::Region}:${AWS::AccountId}:log-group:/aws/sagemaker/*"
         - Effect: Allow
           Action:
           - iam:PassRole
@@ -131,10 +147,12 @@ Resources:
           - s3:PutObject
           - s3:DeleteObject
           Resource:
-          - !Sub "arn:aws:s3:::${S3BucketName}"
-          - !Sub "arn:aws:s3:::${S3BucketName}/*"
-          - !Sub "arn:aws:s3:::sagemaker-solutions*"
-          - !Sub "arn:aws:s3:::sagemaker-solutions*/*"
+          - !Sub "arn:aws:s3:::${SolutionPrefix}-${S3BucketName}"
+          - !Sub "arn:aws:s3:::${SolutionPrefix}-${S3BucketName}/*"
+          - "arn:aws:s3:::sm-soln-*"
+          - "arn:aws:s3:::sm-soln-*/*"
+          - "arn:aws:s3:::sagemaker-solutions*"
+          - "arn:aws:s3:::sagemaker-solutions*/*"
 
   NotebookInstance:
     Type: AWS::SageMaker::NotebookInstance
@@ -142,7 +160,7 @@ Resources:
       DirectInternetAccess: Enabled
       InstanceType: !Ref SageMakerNotebookInstanceType
       LifecycleConfigName: !GetAtt LifeCycleConfig.NotebookInstanceLifecycleConfigName
-      NotebookInstanceName: aws-fleet-predictive-maintenance
+      NotebookInstanceName: !Sub "${SolutionPrefix}-notebook"
       RoleArn: !GetAtt SageMakerIAMRole.Arn
       VolumeSizeInGB: 500
     Metadata:
@@ -153,6 +171,7 @@ Resources:
   LifeCycleConfig:
     Type: AWS::SageMaker::NotebookInstanceLifecycleConfig
     Properties:
+      NotebookInstanceLifecycleConfigName: !Sub "${SolutionPrefix}-nb-lifecycle-config"
       OnCreate:
         - Content:
             Fn::Base64: !Sub |
@@ -167,7 +186,8 @@ Resources:
               echo "# AWS and solution specific configurations" >> config/config.yaml
               echo "AWS_ACCOUNT_ID: ${AWS::AccountId}" >> config/config.yaml
               echo "AWS_REGION: ${AWS::Region}" >> config/config.yaml
-              echo "S3_BUCKET: sagemaker-solutions-${S3BucketName}" >> config/config.yaml
+              echo "S3_BUCKET: ${SolutionPrefix}-${S3BucketName}" >> config/config.yaml
+              echo "SOLUTION_PREFIX: ${SolutionPrefix}" >> config/config.yaml
               EOF
 
 Outputs:
