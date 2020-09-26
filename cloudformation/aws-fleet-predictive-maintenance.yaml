@@ -198,3 +198,7 @@ Outputs:
   SageMakerNotebookInstanceSignOn:
     Description: URL to notebooks on the Amazon SageMaker Notebook Instance.
     Value: !Sub "https://console.aws.amazon.com/sagemaker/home?region=${AWS::Region}#/notebook-instances/openNotebook/${NotebookInstance.NotebookInstanceName}?view=classic"
+
+  SageMakerRoleArn:
+    Description: "SageMaker Execution Role for the Solution"
+    Value: !GetAtt SageMakerIAMRole.Arn
