@@ -16,6 +16,7 @@ Metadata:
           default: "Advanced Configuration"
         Parameters:
           - SageMakerNotebookInstanceType
+          - LaunchSageMakerNotebookClassic
 
     ParameterLabels:
       S3BucketName:
@@ -24,6 +25,8 @@ Metadata:
         default: "Solution Resources Name Prefix"
       SageMakerNotebookInstanceType:
         default: "SageMaker Notebook Instance Type"
+      LaunchSageMakerNotebookClassic:
+        default: Launch SageMaker Notebook Instance
 Parameters:
   SolutionPrefix:
     Type: String
@@ -37,6 +40,14 @@ Parameters:
     ConstraintDescription: |
       Only allowed to use lowercase letters, hyphens and/or numbers.
       Should also start with 'sm-soln-fleet-predict' for permission management.
+  IamRole:
+    Type: String
+    Default: ""
+    Description: |
+      IAM Role that will be attached to the resources created by this CloudFormation to grant them permissions to
+      perform their required functions. This role should allow SageMaker and Lambda perform the required actions like
+      creating training jobs and processing jobs. If left blank, the template will attempt to create a role for you.
+      This can cause a stack creation error if you don't have privileges to create new roles.
   S3BucketName:
     Description: Amazon S3 Bucket used to store datasets and models.
     Type: String
@@ -44,6 +55,16 @@ Parameters:
     Description: SageMaker notebook instance type.
     Type: String
     Default: "ml.t3.medium"
+  LaunchSageMakerNotebookClassic:
+    Description: Whether to launch classic sagemaker notebook instance
+    Type: String
+    AllowedValues:
+      - "Yes"
+      - "No"
+    Default: "Yes"
+Conditions:
+  CreateClassicSageMakerResources: !Equals [ !Ref LaunchSageMakerNotebookClassic, "Yes" ]
+  CreateCustomSolutionRole: !Equals [!Ref IamRole, ""]
 Resources:
   S3Bucket:
     Type: AWS::S3::Bucket
@@ -68,137 +89,33 @@ Resources:
             reason: Avoids user having to manually create an Amazon S3 bucket for logs.
           - id: W51
             reason: Current default access policy is sufficient.
-  SageMakerIAMRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: !Sub "${SolutionPrefix}-${AWS::Region}-nb-role"
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service:
-              - sagemaker.amazonaws.com
-            Action:
-            - 'sts:AssumeRole'
-  SageMakerIAMPolicy:
-    Type: AWS::IAM::Policy
-    Properties:
-      PolicyName: !Sub "${SolutionPrefix}-nb-instance-policy"
-      Roles:
-        - !Ref SageMakerIAMRole
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-        - Effect: Allow
-          Action:
-          - sagemaker:CreateTrainingJob
-          - sagemaker:DescribeTrainingJob
-          - sagemaker:CreateProcessingJob
-          - sagemaker:DescribeProcessingJob
-          - sagemaker:CreateModel
-          - sagemaker:CreateHyperParameterTuningJob
-          - sagemaker:ListTrainingJobsForHyperParameterTuningJob
-          - sagemaker:DescribeEndpointConfig
-          - sagemaker:DescribeEndpoint
-          - sagemaker:CreateEndpointConfig
-          - sagemaker:CreateEndpoint
-          - sagemaker:DeleteEndpointConfig
-          - sagemaker:DeleteEndpoint
-          - sagemaker:DeleteModel
-          - sagemaker:InvokeEndpoint
-          - sagemaker:DescribeHyperParameterTuningJob
-          Resource:
-          - !Sub "arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:*"
-        - Effect: Allow
-          Action:
-          - cloudwatch:GetMetricData
-          - cloudwatch:GetMetricStatistics
-          - cloudwatch:ListMetrics
-          Resource:
-          - !Sub "arn:aws:cloudwatch:${AWS::Region}:${AWS::AccountId}:*"
-        - Effect: Allow
-          Action:
-          - logs:CreateLogGroup
-          - logs:CreateLogStream
-          - logs:DescribeLogStreams
-          - logs:GetLogEvents
-          - logs:PutLogEvents
-          Resource:
-          - !Sub "arn:aws:logs:${SolutionPrefix}:${AWS::Region}:${AWS::AccountId}:log-group:/aws/sagemaker/*"
-        - Effect: Allow
-          Action:
-          - iam:PassRole
-          Resource:
-          - !GetAtt SageMakerIAMRole.Arn
-          Condition:
-            StringEquals:
-              iam:PassedToService: sagemaker.amazonaws.com
-        - Effect: Allow
-          Action:
-          - iam:GetRole
-          Resource:
-          - !GetAtt SageMakerIAMRole.Arn
-        - Effect: Allow
-          Action:
-          - s3:CreateBucket
-          - s3:ListBucket
-          - s3:GetObject
-          - s3:PutObject
-          - s3:DeleteObject
-          Resource:
-          - !Sub "arn:aws:s3:::${SolutionPrefix}-${S3BucketName}"
-          - !Sub "arn:aws:s3:::${SolutionPrefix}-${S3BucketName}/*"
-          - "arn:aws:s3:::sm-soln-*"
-          - "arn:aws:s3:::sm-soln-*/*"
-          - "arn:aws:s3:::sagemaker-solutions*"
-          - "arn:aws:s3:::sagemaker-solutions*/*"
 
-  NotebookInstance:
-    Type: AWS::SageMaker::NotebookInstance
+  PermissionsStack:
+    Type: "AWS::CloudFormation::Stack"
+    Condition: CreateCustomSolutionRole
     Properties:
-      DirectInternetAccess: Enabled
-      InstanceType: !Ref SageMakerNotebookInstanceType
-      LifecycleConfigName: !GetAtt LifeCycleConfig.NotebookInstanceLifecycleConfigName
-      NotebookInstanceName: !Sub "${SolutionPrefix}-notebook"
-      RoleArn: !GetAtt SageMakerIAMRole.Arn
-      VolumeSizeInGB: 500
-    Metadata:
-      cfn_nag:
-        rules_to_suppress:
-          - id: W1201
-            reason: Solution does not have KMS encryption enabled by default
-  LifeCycleConfig:
-    Type: AWS::SageMaker::NotebookInstanceLifecycleConfig
+      TemplateURL: !Sub "https://s3.amazonaws.com/sagemaker-solutions-${AWS::Region}/aws-fleet-predictive-maintenance/cloudformation/aws-fleet-predictive-maintenance-permissions.yaml"
+      Parameters:
+        SolutionPrefix: !Ref SolutionPrefix
+        S3BucketName: !Ref S3BucketName
+
+  SageMakerStack:
+    Type: "AWS::CloudFormation::Stack"
+    Condition: CreateClassicSageMakerResources
     Properties:
-      NotebookInstanceLifecycleConfigName: !Sub "${SolutionPrefix}-nb-lifecycle-config"
-      OnCreate:
-        - Content:
-            Fn::Base64: !Sub |
-              set -e
-              # Perform following actions as ec2-user.
-              sudo -u ec2-user -i <<EOF
-              cd /home/ec2-user/SageMaker
-              # Copy source files.
-              aws s3 cp s3://sagemaker-solutions-${AWS::Region}/aws-fleet-predictive-maintenance/sagemaker/ . --recursive
-              # Set useful solution specific variables via config file.
-              echo -e "\n" >> config/config.yaml
-              echo "# AWS and solution specific configurations" >> config/config.yaml
-              echo "AWS_ACCOUNT_ID: ${AWS::AccountId}" >> config/config.yaml
-              echo "AWS_REGION: ${AWS::Region}" >> config/config.yaml
-              echo "S3_BUCKET: ${SolutionPrefix}-${S3BucketName}" >> config/config.yaml
-              echo "SOLUTION_PREFIX: ${SolutionPrefix}" >> config/config.yaml
-              EOF
+      TemplateURL: !Sub "https://s3.amazonaws.com/sagemaker-solutions-${AWS::Region}/aws-fleet-predictive-maintenance/cloudformation/aws-fleet-predictive-maintenance-sagemaker.yaml"
+      Parameters:
+        SolutionPrefix: !Ref SolutionPrefix
+        S3BucketName: !Ref S3Bucket
+        SageMakerRoleArn: !If [CreateCustomSolutionRole, !GetAtt PermissionsStack.Outputs.SageMakerRoleArn, !Ref IamRole]
+        SageMakerNotebookInstanceType: !Ref SageMakerNotebookInstanceType
 
 Outputs:
-  NotebookInstanceId:
-    Description: "SageMaker Notebook instance id"
-    Value: !Ref NotebookInstance
-
-  SageMakerNotebookInstanceSignOn:
-    Description: URL to notebooks on the Amazon SageMaker Notebook Instance.
-    Value: !Sub "https://console.aws.amazon.com/sagemaker/home?region=${AWS::Region}#/notebook-instances/openNotebook/${NotebookInstance.NotebookInstanceName}?view=classic"
+  NotebookInstance:
+    Condition: CreateClassicSageMakerResources
+    Description: "SageMaker Notebook instance to manually orchestrate data preprocessing and model training"
+    Value: !GetAtt SageMakerStack.Outputs.NotebookInstance
 
   SageMakerRoleArn:
     Description: "SageMaker Execution Role for the Solution"
-    Value: !GetAtt SageMakerIAMRole.Arn
+    Value: !If [CreateCustomSolutionRole, !GetAtt PermissionsStack.Outputs.SageMakerRoleArn, !Ref IamRole]

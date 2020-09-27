@@ -1,0 +1,111 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "(SA0002) - aws-fleet-predictive-maintenance SageMaker permissions stack"
+Parameters:
+  SolutionPrefix:
+    Description: Enter the name of the prefix for the solution used for naming
+    Type: String
+    Default: "sm-soln-fleet-predict"
+  S3BucketName:
+    Description: Enter the name of the S3 bucket for the solution
+    Type: String
+    Default: "demo"
+
+Resources:
+  SageMakerIAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${SolutionPrefix}-${AWS::Region}-nb-role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+              - !Sub "arn:aws:iam::${AWS::AccountId}:root"
+              Service:
+              - sagemaker.amazonaws.com
+            Action:
+            - 'sts:AssumeRole'
+  SageMakerIAMPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub "${SolutionPrefix}-nb-instance-policy"
+      Roles:
+        - !Ref SageMakerIAMRole
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - sagemaker:CreateTrainingJob
+          - sagemaker:DescribeTrainingJob
+          - sagemaker:CreateProcessingJob
+          - sagemaker:DescribeProcessingJob
+          - sagemaker:CreateModel
+          - sagemaker:CreateHyperParameterTuningJob
+          - sagemaker:ListTrainingJobsForHyperParameterTuningJob
+          - sagemaker:DescribeEndpointConfig
+          - sagemaker:DescribeEndpoint
+          - sagemaker:CreateEndpointConfig
+          - sagemaker:CreateEndpoint
+          - sagemaker:DeleteEndpointConfig
+          - sagemaker:DeleteEndpoint
+          - sagemaker:DeleteModel
+          - sagemaker:InvokeEndpoint
+          - sagemaker:DescribeHyperParameterTuningJob
+          Resource:
+          - !Sub "arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:*"
+        - Effect: Allow
+          Action:
+          - cloudwatch:GetMetricData
+          - cloudwatch:GetMetricStatistics
+          - cloudwatch:ListMetrics
+          Resource:
+          - !Sub "arn:aws:cloudwatch:${AWS::Region}:${AWS::AccountId}:*"
+        - Effect: Allow
+          Action:
+          - logs:CreateLogGroup
+          - logs:CreateLogStream
+          - logs:DescribeLogStreams
+          - logs:GetLogEvents
+          - logs:PutLogEvents
+          Resource:
+          - !Sub "arn:aws:logs:${SolutionPrefix}:${AWS::Region}:${AWS::AccountId}:log-group:/aws/sagemaker/*"
+        - Effect: Allow
+          Action:
+          - iam:PassRole
+          Resource:
+          - !GetAtt SageMakerIAMRole.Arn
+          Condition:
+            StringEquals:
+              iam:PassedToService: sagemaker.amazonaws.com
+        - Effect: Allow
+          Action:
+          - iam:GetRole
+          Resource:
+          - !GetAtt SageMakerIAMRole.Arn
+        - Effect: Allow
+          Action:
+          - s3:CreateBucket
+          - s3:ListBucket
+          - s3:GetObject
+          - s3:PutObject
+          - s3:DeleteObject
+          Resource:
+          - !Sub "arn:aws:s3:::${SolutionPrefix}-${S3BucketName}"
+          - !Sub "arn:aws:s3:::${SolutionPrefix}-${S3BucketName}/*"
+          - "arn:aws:s3:::sm-soln-*"
+          - "arn:aws:s3:::sm-soln-*/*"
+          - "arn:aws:s3:::sagemaker-solutions*"
+          - "arn:aws:s3:::sagemaker-solutions*/*"
+
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W12
+            reason: ECR GetAuthorizationToken is non resource-specific action
+
+Outputs:
+  SageMakerRoleArn:
+    Description: "SageMaker Execution Role for the solution"
+    Value: !GetAtt SageMakerIAMRole.Arn

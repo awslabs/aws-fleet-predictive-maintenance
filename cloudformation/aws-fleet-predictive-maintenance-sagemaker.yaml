@@ -1,0 +1,52 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "(SA0002) - aws-fleet-predictive-maintenance SageMaker stack"
+Parameters:
+  SolutionPrefix:
+    Type: String
+  S3BucketName:
+    Type: String
+  SageMakerRoleArn:
+    Type: String
+  SageMakerNotebookInstanceType:
+    Type: String
+
+Resources:
+  NotebookInstance:
+    Type: AWS::SageMaker::NotebookInstance
+    Properties:
+      DirectInternetAccess: Enabled
+      InstanceType: !Ref SageMakerNotebookInstanceType
+      LifecycleConfigName: !GetAtt LifeCycleConfig.NotebookInstanceLifecycleConfigName
+      NotebookInstanceName: !Sub "${SolutionPrefix}-notebook"
+      RoleArn: !Sub "${SageMakerRoleArn}"
+      VolumeSizeInGB: 500
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W1201
+            reason: Solution does not have KMS encryption enabled by default
+  LifeCycleConfig:
+    Type: AWS::SageMaker::NotebookInstanceLifecycleConfig
+    Properties:
+      NotebookInstanceLifecycleConfigName: !Sub "${SolutionPrefix}-nb-lifecycle-config"
+      OnCreate:
+        - Content:
+            Fn::Base64: !Sub |
+              set -e
+              # Perform following actions as ec2-user.
+              sudo -u ec2-user -i <<EOF
+              cd /home/ec2-user/SageMaker
+              # Copy source files.
+              aws s3 cp s3://sagemaker-solutions-${AWS::Region}/aws-fleet-predictive-maintenance/sagemaker/ . --recursive
+              # Set useful solution specific variables via config file.
+              echo -e "\n" >> config/config.yaml
+              echo "# AWS and solution specific configurations" >> config/config.yaml
+              echo "AWS_ACCOUNT_ID: ${AWS::AccountId}" >> config/config.yaml
+              echo "AWS_REGION: ${AWS::Region}" >> config/config.yaml
+              echo "S3_BUCKET: ${SolutionPrefix}-${S3BucketName}" >> config/config.yaml
+              echo "SOLUTION_PREFIX: ${SolutionPrefix}" >> config/config.yaml
+              EOF
+Outputs:
+  NotebookInstance:
+    Description: "SageMaker Notebook instance id"
+    Value: !Ref NotebookInstance
