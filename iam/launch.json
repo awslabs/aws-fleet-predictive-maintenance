@@ -129,14 +129,11 @@
         {
             "Effect": "Allow",
             "Action": [
-	        "cloudformation:ListStacks"
-            ],
-            "Resource": "*"
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
-	        "cloudformation:GetTemplateSummary"
+	        "cloudformation:ListStacks",
+	        "cloudformation:GetTemplateSummary",
+                "cloudformation:ValidateTemplate",
+                "cloudformation:DescribeStacks"
+
             ],
             "Resource": "*"
         }

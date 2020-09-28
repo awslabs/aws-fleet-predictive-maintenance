@@ -116,6 +116,6 @@ Outputs:
     Description: "SageMaker Notebook instance to manually orchestrate data preprocessing and model training"
     Value: !GetAtt SageMakerStack.Outputs.NotebookInstance
 
-  SageMakerRoleArn:
+  SageMakerIamRole:
     Description: "SageMaker Execution Role for the Solution"
     Value: !If [CreateCustomSolutionRole, !GetAtt PermissionsStack.Outputs.SageMakerRoleArn, !Ref IamRole]
