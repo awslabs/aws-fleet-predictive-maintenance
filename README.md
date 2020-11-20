@@ -85,6 +85,17 @@ As part of the solution, the following services are used:
 
 ![](docs/architecture.jpg)
 
+1. An extract is created from the Fleet Management System containing vehicle data and sensor logs.
+2. **Amazon SageMaker model** is deployed after model is trained.
+3. Connected vehicle sends sensor logs to **AWS IoT Core** as shown (alternatively via HTTP interface).
+4. Sensor logs are persisted via **Amazon Kinesis**.
+5. Sensor logs are sent to **AWS Lambda** for analysis.
+6. **AWS Lambda** uses predictions model on sensor logs.
+7. Predictions are persisted in **Amazon S3**.
+8. Aggregate results are displayed on **Amazon QuickSight** dashboard.
+9. Real-time notifications are sent to **Amazon SNS**.
+10. **Amazon SNS** sends notifications back to connected vehicle.
+
 ## Costs
 
 You are responsible for the cost of the AWS services used while running this solution.
