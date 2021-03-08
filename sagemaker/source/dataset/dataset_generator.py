@@ -7,8 +7,8 @@ class DatasetGenerator():
                  fleet_info_fn='../../data/example_fleet_info.csv',
                  fleet_sensor_logs_fn='../../data/example_fleet_sensor_logs.csv',
                  fleet_statistics_fn='../../data/generation/fleet_statistics.csv',
-                 num_vehicles=100,
-                 num_sensor_readings=50,
+                 num_vehicles=250,
+                 num_sensor_readings=100,
                  period_ms=30000):
         self.statistics_df = pd.read_csv(fleet_statistics_fn)
         self.fleet_info_fn=fleet_info_fn

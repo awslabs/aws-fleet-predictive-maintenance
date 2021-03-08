@@ -10,13 +10,15 @@ class PMDataset_torch:
     '''
     Pytorch dataset to read the AWS fleet predict data.
     '''
-    def __init__(self, file, sensor_headers, target_column, standardize=True):      
+    def __init__(self, file, sensor_headers, target_column, standardize=True, verbose=True):      
         super().__init__()
         self.target_column = target_column
         self.sensor_headers = sensor_headers
+        self.verbose = verbose
         
-        print('Creating PMDataset:', file)
-        print('  * Loading CSV data')
+        if self.verbose:
+            print('Creating PMDataset:', file)
+            print('  * Loading CSV data')
         df = pd.read_csv(file)
         df = df.dropna()
         
@@ -30,8 +32,8 @@ class PMDataset_torch:
         
         self.data, self.labels = self._build_sensor_output_data(sensor_df, standardize, mean_dict)
         self.vehicle_properties = vehicle_properties_df
-
-        print("Done")
+        if self.verbose:
+            print("Done")
         
     def select_data(self, **kwargs):
         '''
@@ -101,7 +103,8 @@ class PMDataset_torch:
         for sensor_header in self.sensor_headers:
             mean = np.mean(df_train.iloc[:, df_train.columns.str.contains(sensor_header)].values)
             std = np.std(df_train.iloc[:, df_train.columns.str.contains(sensor_header)].values)
-            print("{} mean is {:0.4f}+{:0.4f}".format(sensor_header, mean, std))
+            if self.verbose:
+                print("{} mean is {:0.4f}+{:0.4f}".format(sensor_header, mean, std))
             output_means[sensor_header] = (mean, std)
         return output_means
     

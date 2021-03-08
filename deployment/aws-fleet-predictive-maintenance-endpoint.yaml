@@ -1,0 +1,88 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "(SA0019) - aws-fleet-predictive-maintenance SageMaker endpoint stack"
+Parameters:
+  SolutionPrefix:
+    Type: String
+  S3BucketName:
+    Type: String
+  SageMakerIAMRoleArn:
+    Type: String
+  SageMakerInferenceInstanceType:
+    Type: String
+  SolutionsS3BucketNamePrefix:
+    Type: String
+  SolutionName:
+    Type: String
+
+Mappings:
+  RegionMap:
+    us-east-1:
+      "PyTorchInference": "763104351884.dkr.ecr.us-east-1.amazonaws.com/pytorch-inference:1.5.0-cpu-py3"
+    us-east-2:
+      "PyTorchInference": "763104351884.dkr.ecr.us-east-2.amazonaws.com/pytorch-inference:1.5.0-cpu-py3"
+    us-west-1:
+      "PyTorchInference": "763104351884.dkr.ecr.us-west-1.amazonaws.com/pytorch-inference:1.5.0-cpu-py3"
+    us-west-2:
+      "PyTorchInference": "763104351884.dkr.ecr.us-west-2.amazonaws.com/pytorch-inference:1.5.0-cpu-py3"
+    ap-northeast-1:
+      "PyTorchInference": "763104351884.dkr.ecr.ap-northeast-1.amazonaws.com/pytorch-inference:1.5.0-cpu-py3"
+    ap-northeast-2:
+      "PyTorchInference": "763104351884.dkr.ecr.ap-northeast-2.amazonaws.com/pytorch-inference:1.5.0-cpu-py3"
+    ap-east-1:
+      "PyTorchInference": "763104351884.dkr.ecr.ap-east-1.amazonaws.com/pytorch-inference:1.5.0-cpu-py3"
+    ap-south-1:
+      "PyTorchInference": "763104351884.dkr.ecr.ap-south-1.amazonaws.com/pytorch-inference:1.5.0-cpu-py3"
+    ap-southeast-1:
+      "PyTorchInference": "763104351884.dkr.ecr.ap-southeast-1.amazonaws.com/pytorch-inference:1.5.0-cpu-py3"
+    ap-southeast-2:
+      "PyTorchInference": "763104351884.dkr.ecr.ap-southeast-2.amazonaws.com/pytorch-inference:1.5.0-cpu-py3"
+    me-south-1:
+      "PyTorchInference": "217643126080.dkr.ecr.me-south-1.amazonaws.com/pytorch-inference:1.5.0-cpu-py3"
+    sa-east-1:
+      "PyTorchInference": "763104351884.dkr.ecr.sa-east-1.amazonaws.com/pytorch-inference:1.5.0-cpu-py3"
+    ca-central-1:
+      "PyTorchInference": "763104351884.dkr.ecr.ca-central-1.amazonaws.com/pytorch-inference:1.5.0-cpu-py3"
+    eu-central-1:
+      "PyTorchInference": "763104351884.dkr.ecr.eu-central-1.amazonaws.com/pytorch-inference:1.5.0-cpu-py3"
+    eu-north-1:
+      "PyTorchInference": "763104351884.dkr.ecr.eu-north-1.amazonaws.com/pytorch-inference:1.5.0-cpu-py3"
+    eu-west-1:
+      "PyTorchInference": "763104351884.dkr.ecr.eu-west-1.amazonaws.com/pytorch-inference:1.5.0-cpu-py3"
+    eu-west-2:
+      "PyTorchInference": "763104351884.dkr.ecr.eu-west-2.amazonaws.com/pytorch-inference:1.5.0-cpu-py3"
+    eu-west-3:
+      "PyTorchInference": "763104351884.dkr.ecr.eu-west-3.amazonaws.com/pytorch-inference:1.5.0-cpu-py3"
+    
+Resources:
+  Endpoint:
+    Type: "AWS::SageMaker::Endpoint"
+    Properties:
+      EndpointName: !Sub "${SolutionPrefix}-demo"
+      EndpointConfigName:
+        !GetAtt EndpointConfig.EndpointConfigName
+        
+  EndpointConfig:
+    Type: "AWS::SageMaker::EndpointConfig"
+    Properties:
+      EndpointConfigName: !Sub "${SolutionPrefix}-demo"
+      ProductionVariants:
+        - InitialInstanceCount: 1
+          InitialVariantWeight: 1.0
+          InstanceType: !Sub "${SageMakerInferenceInstanceType}"
+          ModelName: !GetAtt Model.ModelName
+          VariantName: !GetAtt Model.ModelName
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W1200
+            reason: Solution does not have KMS encryption enabled by default
+
+  Model:
+    Type: "AWS::SageMaker::Model"
+    Properties:
+      ModelName: !Sub "${SolutionPrefix}-demo"
+      PrimaryContainer:
+        ModelDataUrl: !Sub "s3://${SolutionsS3BucketNamePrefix}-${AWS::Region}/${SolutionName}/deployment/model.tar.gz"
+        Image: !FindInMap [RegionMap, !Ref "AWS::Region", PyTorchInference]
+        Mode: "SingleModel"
+      ExecutionRoleArn: !Ref SageMakerIAMRoleArn

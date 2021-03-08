@@ -1,2 +1,49 @@
-torch==1.4.0
-torchvision==0.5.0
+ansiwrap==0.8.4           # via papermill
+appdirs==1.4.4            # via black
+async-generator==1.10     # via nbclient
+attrs==20.3.0             # via jsonschema
+black==20.8b1             # via papermill
+boto3==1.16.27            # via watchtower
+botocore==1.19.27         # via boto3, s3transfer
+certifi==2020.11.8        # via requests
+chardet==3.0.4            # via requests
+click==7.1.2              # via black, papermill
+dataclasses==0.6          # via black
+decorator==4.4.2          # via traitlets
+entrypoints==0.3          # via papermill
+idna==2.10                # via requests
+importlib-metadata==3.1.0  # via jsonschema
+ipython-genutils==0.2.0   # via nbformat, traitlets
+jmespath==0.10.0          # via boto3, botocore
+jsonschema==3.2.0         # via nbformat
+jupyter-client==6.1.7     # via nbclient
+jupyter-core==4.7.0       # via jupyter-client, nbformat
+mypy-extensions==0.4.3    # via black
+nbclient==0.5.1           # via papermill
+nbformat==5.0.8           # via nbclient, papermill
+nest-asyncio==1.4.3       # via nbclient
+numpy==1.19.4             # via torchvision
+papermill==2.2.2          # via -r SageMaker/requirements.in
+pathspec==0.8.1           # via black
+pillow==8.0.1             # via torchvision
+pyrsistent==0.17.3        # via jsonschema
+python-dateutil==2.8.1    # via botocore, jupyter-client
+pyyaml==5.3.1             # via papermill
+pyzmq==20.0.0             # via jupyter-client
+regex==2020.11.13         # via black
+requests==2.25.0          # via papermill
+s3transfer==0.3.3         # via boto3
+six==1.15.0               # via jsonschema, python-dateutil, tenacity, torchvision, traitlets
+tenacity==6.2.0           # via papermill
+textwrap3==0.9.2          # via ansiwrap
+toml==0.10.2              # via black
+torch==1.4.0              # via -r SageMaker/requirements.in, torchvision
+torchvision==0.5.0        # via -r SageMaker/requirements.in
+tornado==6.1              # via jupyter-client
+tqdm==4.54.0              # via papermill
+traitlets==4.3.3          # via jupyter-client, jupyter-core, nbclient, nbformat
+typed-ast==1.4.1          # via black
+typing-extensions==3.7.4.3  # via black
+urllib3==1.26.2           # via botocore, requests
+watchtower==1.0.0         # via -r SageMaker/requirements.in
+zipp==3.4.0               # via importlib-metadata

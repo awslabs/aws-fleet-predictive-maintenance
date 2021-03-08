@@ -1,14 +1,19 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "(SA0002) - aws-fleet-predictive-maintenance SageMaker permissions stack"
+Description: "(SA0019) - aws-fleet-predictive-maintenance SageMaker permissions stack"
 Parameters:
   SolutionPrefix:
-    Description: Enter the name of the prefix for the solution used for naming
     Type: String
-    Default: "sm-soln-fleet-predict"
   S3BucketName:
-    Description: Enter the name of the S3 bucket for the solution
     Type: String
-    Default: "demo"
+  SolutionsS3BucketNamePrefix: 
+    Type: String
+  TestOutputsS3Bucket:
+    Type: String
+  RootStackId:
+    Type: String
+
+Conditions:
+    AddTestBucketPermissions: !Not [!Equals [!Ref TestOutputsS3Bucket, ""]]
 
 Resources:
   SageMakerIAMRole:
@@ -20,12 +25,21 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              AWS:
-              - !Sub "arn:aws:iam::${AWS::AccountId}:root"
               Service:
               - sagemaker.amazonaws.com
             Action:
             - 'sts:AssumeRole'
+          - Effect: Allow
+            Principal:
+              Service:
+              - lambda.amazonaws.com
+            Action:
+            - 'sts:AssumeRole'
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+            reason: Using explicit name to restrict permissions
   SageMakerIAMPolicy:
     Type: AWS::IAM::Policy
     Properties:
@@ -37,13 +51,18 @@ Resources:
         Statement:
         - Effect: Allow
           Action:
+          - sagemaker:ListTrainingJobsForHyperParameterTuningJob
+          - sagemaker:ListHyperParameterTuningJobs
+          Resource:
+            - "*"
+        - Effect: Allow
+          Action:
           - sagemaker:CreateTrainingJob
           - sagemaker:DescribeTrainingJob
           - sagemaker:CreateProcessingJob
           - sagemaker:DescribeProcessingJob
           - sagemaker:CreateModel
           - sagemaker:CreateHyperParameterTuningJob
-          - sagemaker:ListTrainingJobsForHyperParameterTuningJob
           - sagemaker:DescribeEndpointConfig
           - sagemaker:DescribeEndpoint
           - sagemaker:CreateEndpointConfig
@@ -60,8 +79,9 @@ Resources:
           - cloudwatch:GetMetricData
           - cloudwatch:GetMetricStatistics
           - cloudwatch:ListMetrics
+          - cloudwatch:PutMetricData
           Resource:
-          - !Sub "arn:aws:cloudwatch:${AWS::Region}:${AWS::AccountId}:*"
+          - "*"
         - Effect: Allow
           Action:
           - logs:CreateLogGroup
@@ -70,7 +90,8 @@ Resources:
           - logs:GetLogEvents
           - logs:PutLogEvents
           Resource:
-          - !Sub "arn:aws:logs:${SolutionPrefix}:${AWS::Region}:${AWS::AccountId}:log-group:/aws/sagemaker/*"
+          - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/sagemaker/*"
+          - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*"
         - Effect: Allow
           Action:
           - iam:PassRole
@@ -86,18 +107,56 @@ Resources:
           - !GetAtt SageMakerIAMRole.Arn
         - Effect: Allow
           Action:
-          - s3:CreateBucket
+            - ecr:GetAuthorizationToken
+            - ecr:GetDownloadUrlForLayer
+            - ecr:BatchGetImage
+            - ecr:BatchCheckLayerAvailability
+          Resource:
+            - "*"
+        - Effect: Allow
+          Action:
           - s3:ListBucket
           - s3:GetObject
           - s3:PutObject
           - s3:DeleteObject
+          - s3:GetBucketLocation
           Resource:
-          - !Sub "arn:aws:s3:::${SolutionPrefix}-${S3BucketName}"
-          - !Sub "arn:aws:s3:::${SolutionPrefix}-${S3BucketName}/*"
-          - "arn:aws:s3:::sm-soln-*"
-          - "arn:aws:s3:::sm-soln-*/*"
-          - "arn:aws:s3:::sagemaker-solutions*"
-          - "arn:aws:s3:::sagemaker-solutions*/*"
+            - !Sub "arn:aws:s3:::${S3BucketName}"
+            - !Sub "arn:aws:s3:::${S3BucketName}/*"
+        - Effect: Allow
+          Action:
+          - s3:ListBucket
+          - s3:GetObject
+          Resource:
+          - !Sub "arn:aws:s3:::${SolutionsS3BucketNamePrefix}-${AWS::Region}"
+          - !Sub "arn:aws:s3:::${SolutionsS3BucketNamePrefix}-${AWS::Region}/*"
+        - Effect: Allow
+          Action:
+          - lambda:InvokeFunction
+          Resource:
+          - !Sub "arn:aws:lambda:::function:*"
+        # For CI Testing
+        - Effect: Allow
+          Action:
+          - s3:AbortMultipartUpload
+          - s3:GetObject
+          - s3:PutObject
+          - s3:DeleteObject
+          - s3:ListBucket
+          - s3:DeleteBucket
+          - s3:GetBucketLocation
+          - s3:ListBucketMultipartUploads
+          Resource:
+          # Update.
+          - !Sub "arn:aws:s3:::*"
+          - !Sub "arn:aws:s3:::*/*"
+        - Effect: Allow
+          Action:
+          - cloudformation:DescribeStacks
+          Resource:
+          # Update.
+          - !Sub "arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/*/*"
+
 
     Metadata:
       cfn_nag:

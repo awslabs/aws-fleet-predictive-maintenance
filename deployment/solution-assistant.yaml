@@ -1,0 +1,54 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "(SA0019) - aws-fleet-predictive-maintenance solution assistant
+  Predictive Maintenance for Fleets of Vehicles solution assistant stack.
+  Version 1"
+  
+Parameters:
+  SolutionPrefix:
+    Type: String
+  S3BucketName:
+    Description: Amazon S3 Bucket used to store datasets and models.
+    Type: String
+  SolutionsS3BucketNamePrefix:
+    Type: String
+  SolutionName:
+    Type: String
+  SageMakerEndpointName:
+    Type: String
+  SageMakerModelName:
+    Type: String
+  SageMakerIAMRoleArn:
+    Type: String
+
+Resources:
+  SolutionAssistant:
+    Type: "Custom::SolutionAssistant"
+    Properties:
+      ServiceToken: !GetAtt SolutionAssistantLambda.Arn
+      S3BucketName: !Ref S3BucketName
+      SolutionPrefix: !Ref SolutionPrefix
+      SageMakerEndpointName: !Ref SageMakerEndpointName
+      SageMakerEndpointConfigName: !Ref SageMakerEndpointName
+      SageMakerModelName: !Ref SageMakerModelName
+
+  SolutionAssistantLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: "lambda.handler"
+      FunctionName: !Sub "${SolutionPrefix}-soln-assistant"
+      Role: !Ref SageMakerIAMRoleArn
+      Runtime: "python3.8"
+      Code:
+        S3Bucket: !Sub "${SolutionsS3BucketNamePrefix}-${AWS::Region}"
+        S3Key: !Sub "${SolutionName}/build/solution-assistant.zip"
+      Timeout : 60
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W58
+            reason: Passed in role has cloudwatch write permissions
+
+Outputs:
+  SolutionAssistantLambdaArn:
+    Description: "Arn of solution assistant lambda"
+    Value: !GetAtt SolutionAssistantLambda.Arn

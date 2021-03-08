@@ -1,6 +1,6 @@
-## AWS Predictive Maintenance for Automotive Fleets
+## AWS Predictive Maintenance for Fleets
 
-The AWS predictive maintenance solution for automotive fleets applies deep learning techniques to common areas that drive vehicle failures, unplanned downtime and repair costs. It serves as an initial building block for you to get to a proof-of-concept in a short period of time. This solution contains data preparation and visualization functionaility within Amazon SageMaker and allows you to train and optimize the hyperparameters of deep learning models for your dataset. You can use your own data or try the solution with a synthetic data set as part of this solution. This version processes vehicle sensor data over time. A subsequent version will process maintenance record data.
+The AWS predictive maintenance solution for vehicle fleets (i.e., fleet predict) applies deep learning techniques to common areas that drive vehicle failures, unplanned downtime and repair costs. It serves as an initial building block for you to get to a proof-of-concept in a short period of time. This solution contains data preparation and visualization functionaility within Amazon SageMaker and allows you to train and optimize the hyperparameters of deep learning models for your dataset. You can use your own data or try the solution with a synthetic data set as part of this solution. This version processes vehicle sensor data over time. A subsequent version will process maintenance record data.
 
 ## Requirements
 
@@ -22,7 +22,7 @@ Click on one of the following buttons to *quick create* the AWS CloudFormation S
     <td>Oregon</td>
     <td>us-west-2</td>
     <td align="center">
-      <a href="https://us-west-2.console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/create/review?templateURL=https://sagemaker-solutions-us-west-2.s3-us-west-2.amazonaws.com/aws-fleet-predictive-maintenance/cloudformation/aws-fleet-predictive-maintenance.yaml&stackName=sagemaker-solutions-fleet-predictive-maintenance">
+      <a href="https://us-west-2.console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/create/review?templateURL=https://sagemaker-solutions-us-west-2.s3-us-west-2.amazonaws.com/aws-fleet-predictive-maintenance/deployment/aws-fleet-predictive-maintenance.yaml&stackName=sagemaker-soln-fleet-predictive-maintenance&param_LaunchSageMakerNotebookClassic=Yes">
         <img src="docs/launch_button.svg" height="30">
       </a>
     </td>
@@ -35,7 +35,7 @@ You should acknowledge the use of the two capabilities and click 'Create Stack'.
 
 ## Contents
 
-* `cloudformation/`
+* `deployment/`
   * `aws-fleet-predictive-maintenance.yaml`: Creates AWS CloudFormation Stack for solution.
 * `docs/`
   * Contains images for documenting the solution.
@@ -84,17 +84,6 @@ As part of the solution, the following services are used:
 * [Amazon SageMaker Endpoint](https://aws.amazon.com/sagemaker/): Used to deploy the trained model.
 
 ![](docs/architecture.jpg)
-
-1. An extract is created from the Fleet Management System containing vehicle data and sensor logs.
-2. **Amazon SageMaker model** is deployed after model is trained.
-3. Connected vehicle sends sensor logs to **AWS IoT Core** as shown (alternatively via HTTP interface).
-4. Sensor logs are persisted via **Amazon Kinesis**.
-5. Sensor logs are sent to **AWS Lambda** for analysis.
-6. **AWS Lambda** uses predictions model on sensor logs.
-7. Predictions are persisted in **Amazon S3**.
-8. Aggregate results are displayed on **Amazon QuickSight** dashboard.
-9. Real-time notifications are sent to **Amazon SNS**.
-10. **Amazon SNS** sends notifications back to connected vehicle.
 
 ## Costs
 
@@ -162,4 +151,5 @@ See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more inform
 ## License
 
 This project is licensed under the Apache-2.0 License.
+
 

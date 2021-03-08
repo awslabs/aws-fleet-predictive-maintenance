@@ -3,8 +3,6 @@ import matplotlib.pyplot as plt
 
 from sagemaker.analytics import TrainingJobAnalytics
 
-TIME_PERIOD = 5
-
 def get_dfs_from_hpt(summaries, metrics):
     '''
     Helper function to get a list of dataframes from a HyperparameterTuningJobAnalytics summary
@@ -27,7 +25,7 @@ def get_dfs_from_hpt(summaries, metrics):
         job_df = pd.DataFrame()
 
         for m in metrics:
-            df = TrainingJobAnalytics(job_name, [m], period=TIME_PERIOD).dataframe()
+            df = TrainingJobAnalytics(job_name, [m]).dataframe()
             df.rename(columns={'value':'{}'.format(m)}, inplace=True)
             if len(df) == 0:
                 continue

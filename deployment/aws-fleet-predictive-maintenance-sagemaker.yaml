@@ -1,0 +1,108 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "(SA0019) - aws-fleet-predictive-maintenance SageMaker stack"
+Parameters:
+  SolutionPrefix:
+    Type: String
+  S3BucketName:
+    Type: String
+  SageMakerIAMRoleArn:
+    Type: String
+  SageMakerNotebookInstanceType:
+    Type: String
+  SageMakerTrainingInstanceType:
+    Type: String
+  SageMakerInferenceInstanceType:
+    Type: String
+  SolutionName:
+    Type: String  
+  SolutionsS3BucketNamePrefix:
+    Type: String
+  SageMakerDemoEndpointName:
+    Type: String
+  SageMakerEndpointName:
+    Type: String
+  SageMakerModelName:
+    Type: String
+  TestOutputsS3Bucket:
+    Type: String
+
+Resources:
+  NotebookInstance:
+    Type: AWS::SageMaker::NotebookInstance
+    Properties:
+      DirectInternetAccess: Enabled
+      InstanceType: !Ref SageMakerNotebookInstanceType
+      LifecycleConfigName: !GetAtt LifeCycleConfig.NotebookInstanceLifecycleConfigName
+      NotebookInstanceName: !Sub "${SolutionPrefix}-notebook"
+      RoleArn: !Sub "${SageMakerIAMRoleArn}"
+      VolumeSizeInGB: 500
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W1201
+            reason: Solution does not have KMS encryption enabled by default
+  LifeCycleConfig:
+    Type: AWS::SageMaker::NotebookInstanceLifecycleConfig
+    Properties:
+      NotebookInstanceLifecycleConfigName: !Sub "${SolutionPrefix}-nb-lifecycle-config"
+      OnCreate:
+        - Content:
+            Fn::Base64: !Sub |
+              set -e
+              # Perform following actions as ec2-user.
+              sudo -u ec2-user -i <<EOF
+              cd /home/ec2-user/SageMaker
+              # Copy source files.
+              aws s3 cp s3://${SolutionsS3BucketNamePrefix}-${AWS::Region}/${SolutionName}/sagemaker/ . --recursive
+              aws s3 sync s3://${SolutionsS3BucketNamePrefix}-${AWS::Region}/${SolutionName}/test ./test
+              aws s3 cp s3://${SolutionsS3BucketNamePrefix}-${AWS::Region}/${SolutionName}/docs/architecture.jpg .
+              
+              # Set useful solution specific variables via config file.
+              touch stack_outputs.json
+              echo '{' >> stack_outputs.json
+              echo '  "StackName": "${AWS::StackName}",' >> stack_outputs.json
+              echo '  "AwsAccountId": "${AWS::AccountId}",' >> stack_outputs.json
+              echo '  "AwsRegion": "${AWS::Region}",' >> stack_outputs.json
+              echo '  "S3Bucket": "${S3BucketName}",' >> stack_outputs.json
+              echo '  "SolutionPrefix": "${SolutionPrefix}",' >> stack_outputs.json
+              echo '  "SageMakerIamRole": "${SageMakerIAMRoleArn}",' >> stack_outputs.json
+              echo '  "TestOutputsS3Bucket": "${TestOutputsS3Bucket}",' >> stack_outputs.json
+              echo '  "SolutionS3BucketName": "${SolutionsS3BucketNamePrefix}-${AWS::Region}/${SolutionName}",' >> stack_outputs.json
+              echo '  "SageMakerDemoEndpointName": "${SageMakerDemoEndpointName}",' >> stack_outputs.json
+              echo '  "SageMakerModelName": "${SageMakerModelName}",' >> stack_outputs.json
+              echo '  "SageMakerEndpointName": "${SageMakerEndpointName}",' >> stack_outputs.json
+              echo '  "SageMakerInferenceInstanceType": "${SageMakerInferenceInstanceType}",' >> stack_outputs.json
+              echo '  "SageMakerNotebookInstanceType": "${SageMakerNotebookInstanceType}",' >> stack_outputs.json
+              echo '  "SageMakerTrainingInstanceType": "${SageMakerTrainingInstanceType}"' >> stack_outputs.json
+              echo '}' >> stack_outputs.json
+              EOF
+      OnStart:
+        - Content:
+            Fn::Base64: |
+              set -e
+              # perform following actions as ec2-user
+              sudo -u ec2-user -i <<EOF
+              cd /home/ec2-user/SageMaker
+              /home/ec2-user/anaconda3/envs/python3/bin/pip install --upgrade pip
+              /home/ec2-user/anaconda3/envs/python3/bin/pip --no-cache-dir install -r requirements.txt -q
+              # Optionally run the solution's notebook if this was an integration test launch
+              nohup /home/ec2-user/anaconda3/envs/python3/bin/python ./test/run_notebook.py > ./test/run_notebook.log 2>&1 &
+              echo "OnStart script completed!"
+              EOF
+              
+Outputs:
+  NotebookInstance:
+    Description: "SageMaker Notebook instance id"
+    Value: !Ref NotebookInstance
+
+  SageMakerDemoEndpointName:
+    Description: "SageMaker endpoint demo name"
+    Value: !Sub "${SolutionPrefix}-demo"
+
+  SageMakerModelName:
+    Description: "SageMaker endpoint model name"
+    Value: !Sub "${SolutionPrefix}-model"
+
+  SageMakerEndpointName:
+    Description: "SageMaker endpoint name"
+    Value: !Sub "${SolutionPrefix}-endpoint"
