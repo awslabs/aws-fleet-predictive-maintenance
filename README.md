@@ -22,7 +22,7 @@ Click on one of the following buttons to *quick create* the AWS CloudFormation S
     <td>Oregon</td>
     <td>us-west-2</td>
     <td align="center">
-      <a href="https://us-west-2.console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/create/review?templateURL=https://sagemaker-solutions-us-west-2.s3-us-west-2.amazonaws.com/aws-fleet-predictive-maintenance/cloudformation/aws-fleet-predictive-maintenance.yaml&stackName=sagemaker-solutions-fleet-predictive-maintenance">
+      <a href="https://us-west-2.console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/create/review?templateURL=https://sagemaker-solutions-us-west-2.s3-us-west-2.amazonaws.com/aws-fleet-predictive-maintenance/deployment/aws-fleet-predictive-maintenance.yaml&stackName=sagemaker-soln-fpm-gh">
         <img src="docs/launch_button.svg" height="30">
       </a>
     </td>
