@@ -6,32 +6,12 @@ The AWS predictive maintenance solution for automotive fleets applies deep learn
 
 You will need an AWS account to use this solution. Sign up for an account [here](https://aws.amazon.com/).
 
-You will also need to have permission to use [AWS CloudFormation](https://aws.amazon.com/cloudformation/) and to create all the resources detailed in the [architecture section](#architecture). All AWS permissions can be managed through [AWS IAM](https://aws.amazon.com/iam/). Admin users will have the required permissions, but please contact your account's AWS administrator if your user account doesn't have the required permissions.
-
 ## Getting Started
 
-Click on one of the following buttons to *quick create* the AWS CloudFormation Stack:
+To run this JumpStart 1P Solution and have the infrastructure deploy to your AWS account you will need to create an active SageMaker Studio instance (see [Onboard to Amazon SageMaker Studio](https://docs.aws.amazon.com/sagemaker/latest/dg/gs-studio-onboard.html)). When your Studio instance is *Ready*, use the instructions in [SageMaker JumpStart](https://docs.aws.amazon.com/sagemaker/latest/dg/studio-jumpstart.html) to 1-Click Launch the solution.
 
-<table>
-  <tr>
-    <th colspan="3">AWS Region</td>
-    <th>AWS CloudFormation</td>
-  </tr>
-  <tr>
-    <td>US West</td>
-    <td>Oregon</td>
-    <td>us-west-2</td>
-    <td align="center">
-      <a href="https://us-west-2.console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/create/review?templateURL=https://sagemaker-solutions-us-west-2.s3-us-west-2.amazonaws.com/aws-fleet-predictive-maintenance/deployment/aws-fleet-predictive-maintenance.yaml&stackName=sagemaker-soln-fpm">
-        <img src="docs/launch_button.svg" height="30">
-      </a>
-    </td>
-  </tr>
-</table>
+The solution artifacts are included in this GitHub repository for reference. Note: Solutions are available in most regions including us-west-2, and us-east-1.
 
-You should acknowledge the use of the two capabilities and click 'Create Stack'. Once stack creation has completed successfully, click the 'SageMakerNotebookInstanceSignOn' link on the 'Outputs' tab. You can start by reading the notebook '1_introduction.ipynb'.
-
-**Caution**: Cloning this GitHub repository and running the code manually could lead to unexpected issues! Use the AWS CloudFormation template. You'll get an Amazon SageMaker Notebook instance that's been correctly setup and configured to access the other resources in the solution.
 
 ## Contents
 
